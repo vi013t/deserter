@@ -30,20 +30,20 @@ struct Person {
 }
 
 fn example() {
-    let john = load!(   
-        Person {
-            name = "john",
-            age = 30,
-            address = {
-                house = 101,
-                street = "Main Street",
-                city = "New York",
+	let john = load!(   
+		Person {
+			name = "john",
+			age = 30,
+			address = {
+				house = 101,
+				street = "Main Street",
+				city = "New York",
 				zip_code = {
 					digits = 100200
 				}
-            }
-        }
-    );
+			}
+		}
+	);
 
 	// do things with john, it is a `Person`.
 }

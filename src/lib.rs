@@ -74,7 +74,7 @@ impl ToTokens for StructValue {
 					}
 
 					let Some(struct_name) = struct_name else {
-                        panic!("The type of the field \"{}\" has not been registered with `#[loadable]`", field_name);
+                        panic!("The type of the field \"{}\" has not been registered with `#[loadable]`. Available types are:\n- {}", field_name, current_struct_fields.iter().map(|field| field.0.clone()).collect::<Vec<_>>().join("\n- "));
 					};
 
 					let mut current_struct_name = CURRENT_STRUCT_NAME.try_lock().expect("Could not get current struct name while untokenizing struct value");

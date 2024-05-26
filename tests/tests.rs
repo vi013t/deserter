@@ -1,7 +1,7 @@
 use deserter::{load, loadable};
 
 #[cfg(test)]
-fn test() {
+pub fn test() {
     #[loadable]
     struct ZipCode {
         digits: u32,

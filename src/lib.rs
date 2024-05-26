@@ -1,5 +1,6 @@
 use std::{collections::HashMap, sync::Mutex};
 
+use once_cell::sync::Lazy;
 use proc_macro::TokenStream;
 use proc_macro2::Span;
 use quote::{quote, ToTokens};
@@ -134,7 +135,6 @@ pub fn loadable(_attribute: TokenStream, input: TokenStream) -> TokenStream {
     input
 }
 
-use once_cell::sync::Lazy;
 
 static STRUCTS: Lazy<Mutex<HashMap<String, Vec<(String, String)>>>> =
     Lazy::new(|| Mutex::new(HashMap::new()));

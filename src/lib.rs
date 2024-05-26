@@ -64,7 +64,13 @@ impl ToTokens for StructValue {
                 FieldValue::LoadStruct(struct_value) => {
                     let structs = STRUCTS.try_lock().expect("Could not get struct cache while untokenizing struct value").clone();
 					let current_struct_name = CURRENT_STRUCT_NAME.try_lock().expect("Could not get current struct name while untokenizing struct value").clone();
-                    let current_struct_fields = structs.get(&current_struct_name.clone()).unwrap_or_else(|| panic!("The struct \"{}\" has not been registered with `#[loadable]`", current_struct_name));
+                    let current_struct_fields = structs.get(&current_struct_name.clone()).unwrap_or_else(|| 
+                        panic!(
+							"The type of the field \"{}\" has not been registered with `#[loadable]`. Available types are:\n- {}", 
+							field_name, 
+							structs.keys().map(|element| element.to_owned()).collect::<Vec<_>>().join("\n- ")
+						)
+					);
 
 					let mut struct_name: Option<Ident> = None;
 					for (other_field_name, field_type) in current_struct_fields {
@@ -74,7 +80,11 @@ impl ToTokens for StructValue {
 					}
 
 					let Some(struct_name) = struct_name else {
-                        panic!("The type of the field \"{}\" has not been registered with `#[loadable]`. Available types are:\n- {}", field_name, current_struct_fields.iter().map(|field| field.0.clone()).collect::<Vec<_>>().join("\n- "));
+                        panic!(
+							"The type of the field \"{}\" has not been registered with `#[loadable]`. Available types are:\n- {}", 
+							field_name, 
+							structs.keys().map(|element| element.to_owned()).collect::<Vec<_>>().join("\n- ")
+						);
 					};
 
 					let mut current_struct_name = CURRENT_STRUCT_NAME.try_lock().expect("Could not get current struct name while untokenizing struct value");

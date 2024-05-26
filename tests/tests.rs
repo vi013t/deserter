@@ -2,8 +2,7 @@ use deserter::{load, loadable};
 
 #[cfg(test)]
 fn test() {
-
-	#[loadable]
+    #[loadable]
     struct ZipCode {
         digits: u32,
     }
@@ -23,17 +22,17 @@ fn test() {
         address: Address,
     }
 
-    let value = load!(   
+    let john = load!(
         Person {
-            name = "hi",
+            name = "john",
             age = 30,
             address = {
                 house = 101,
                 street = "Main Street",
                 city = "New York",
-				zip_code = {
-					digits = 100200
-				}
+                zip_code = {
+                    digits = 100200
+                }
             }
         }
     );

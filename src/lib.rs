@@ -62,9 +62,9 @@ impl ToTokens for StructValue {
         let fields_tokens = self.fields.iter().map(|(field_name, field_value)| {
             let field_tokens = match field_value {
                 FieldValue::LoadStruct(struct_value) => {
-                    let structs = &STRUCTS.lock().unwrap();
-                    let current_struct_fields = structs.get(&CURRENT_STRUCT_NAME.lock().unwrap().clone())
-                        .unwrap_or_else(|| panic!("The struct \"{}\" has not been registered with `#[loadable]`", CURRENT_STRUCT_NAME.lock().unwrap()));
+                    let structs = STRUCTS.try_lock().expect("Could not get struct cache while untokenizing struct value").clone();
+					let current_struct_name = CURRENT_STRUCT_NAME.try_lock().expect("Could not get current struct name while untokenizing struct value").clone();
+                    let current_struct_fields = structs.get(&current_struct_name.clone()).unwrap_or_else(|| panic!("The struct \"{}\" has not been registered with `#[loadable]`", current_struct_name));
 
 					let mut struct_name: Option<Ident> = None;
 					for (other_field_name, field_type) in current_struct_fields {
@@ -77,8 +77,9 @@ impl ToTokens for StructValue {
                         panic!("The type of the field \"{}\" has not been registered with `#[loadable]`", field_name);
 					};
 
-					let mut current_struct = CURRENT_STRUCT_NAME.lock().unwrap();
-					*current_struct = struct_name.to_string();
+					let mut current_struct_name = CURRENT_STRUCT_NAME.try_lock().expect("Could not get current struct name while untokenizing struct value");
+					*current_struct_name = struct_name.to_string();
+					drop(current_struct_name);
 
                     quote! { #struct_name #struct_value }
                 }
@@ -103,7 +104,9 @@ struct Wrapper {
 impl Parse for Wrapper {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let struct_name = input.parse::<Ident>()?;
-        let mut current_name = CURRENT_STRUCT_NAME.lock().unwrap();
+        let mut current_name = CURRENT_STRUCT_NAME.try_lock().expect(
+            "Cannot get current struct name while attempting to parse outer wrapper struct",
+        );
         *current_name = struct_name.to_string();
         let value = StructValue::parse(input)?;
         Ok(Self { struct_name, value })
@@ -135,7 +138,6 @@ pub fn loadable(_attribute: TokenStream, input: TokenStream) -> TokenStream {
     input
 }
 
-
 static STRUCTS: Lazy<Mutex<HashMap<String, Vec<(String, String)>>>> =
     Lazy::new(|| Mutex::new(HashMap::new()));
 
@@ -143,20 +145,23 @@ static CURRENT_STRUCT_NAME: Mutex<String> = Mutex::new(String::new());
 
 /// Store a trait definition for future reference.
 fn cache_struct(item: syn::ItemStruct) {
-    STRUCTS.lock().unwrap().insert(
-        item.ident.to_string(),
-        item.fields
-            .iter()
-            .filter_map(|field| {
-                let Type::Path(field_type) = &field.ty else {
-                    return None;
-                };
+    STRUCTS
+        .try_lock()
+        .expect("Cannot get cached structs while attempting to cache a struct")
+        .insert(
+            item.ident.to_string(),
+            item.fields
+                .iter()
+                .filter_map(|field| {
+                    let Type::Path(field_type) = &field.ty else {
+                        return None;
+                    };
 
-                Some((
-                    field.ident.as_ref().unwrap().to_string(),
-                    field_type.path.segments.last().unwrap().ident.to_string(),
-                ))
-            })
-            .collect(),
-    );
+                    Some((
+                        field.ident.as_ref().unwrap().to_string(),
+                        field_type.path.segments.last().unwrap().ident.to_string(),
+                    ))
+                })
+                .collect(),
+        );
 }
